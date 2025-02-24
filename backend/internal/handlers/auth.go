@@ -1,14 +1,32 @@
 package handlers
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 )
 
+type Login struct {
+	Username string `json:"username" form:"username"`
+	Password int    `json:"password" form:"password"`
+}
+
 func HandleAuthRegister(ctx *gin.Context) {
-	return
+	var l Login
+	if err := ctx.ShouldBind(&l); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"bad request": http.StatusBadRequest,
+		})
+		return
+	}
+
 }
 
 func HandleAuthLogin(ctx *gin.Context) {
+	return
+}
+
+func HandleAuthLogout(ctx *gin.Context) {
 	return
 }
 

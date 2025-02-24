@@ -1,0 +1,24 @@
+BACKEND_CMD=./backend/cmd/main.go
+FRONTEND_DIR=./frontend
+BUILD_DIR=./frontend/build
+
+BACKEND_BIN=backend_app
+
+build-backend:
+	go build -o $(BACKEND_BIN) $(BACKEND_CMD)
+
+build-frontend:
+	cd $(FRONTEND_DIR) && npm install && npm run build
+
+build: build-backend build-frontend
+
+run-backend:
+	./$(BACKEND_BIN)
+
+run-frontend:
+	cd $(FRONTEND_DIR) && npm start
+
+clean:
+	rm -rf $(BACKEND_BIN) $(BUILD_DIR)
+
+dev: run-frontend run-backend

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+
 	"github.com/bigelle/online-shop/internal/handlers"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -9,19 +11,19 @@ import (
 func main() {
 	err := godotenv.Load("../.env")
 	if err != nil {
-		panic(err)
+		log.Fatalf("can't load .env file: %s", err.Error())
 	}
-	//TODO: gorm open db, pass it to handlers struct
 
 	r := gin.Default()
-	r.POST("/auth/register", handlers.HandleAuthRegister)
-	r.POST("/auth/login", handlers.HandleAuthLogin)
-	r.GET("/products", handlers.HandleGetProducts)
-	r.GET("/products/:id", handlers.HandleGetProductById)
-	r.POST("/cart/add", handlers.HandleCartAdd)
-	r.GET("/orders", handlers.HandleGetOrders)
-	r.POST("/orders/create", handlers.HandleOrdersCreate)
-	r.POST("/payment/checkout", handlers.HandlePaymentCheckout)
+	r.POST("/api/auth/register", handlers.HandleAuthRegister)
+	r.POST("/api/auth/login", handlers.HandleAuthLogin)
+	r.POST("/api/auth/logout", handlers.HandleAuthLogout)
+	r.GET("/api/products", handlers.HandleGetProducts)
+	r.GET("/api/products/:id", handlers.HandleGetProductById)
+	r.POST("/api/cart/add", handlers.HandleCartAdd)
+	r.GET("/api/orders", handlers.HandleGetOrders)
+	r.POST("/api/orders/create", handlers.HandleOrdersCreate)
+	r.POST("/api/payment/checkout", handlers.HandlePaymentCheckout)
 
 	r.Run()
 }
