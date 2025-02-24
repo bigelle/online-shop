@@ -4,52 +4,23 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
-type Login struct {
-	Username string `json:"username" form:"username"`
-	Password int    `json:"password" form:"password"`
+type AuthHandler struct {
+	DB *gorm.DB
 }
 
-func HandleAuthRegister(ctx *gin.Context) {
-	var l Login
-	if err := ctx.ShouldBind(&l); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"bad request": http.StatusBadRequest,
-		})
-		return
-	}
-
+func NewAuthHandler(db *gorm.DB) *AuthHandler {
+	return &AuthHandler{DB: db}
 }
 
-func HandleAuthLogin(ctx *gin.Context) {
-	return
+func (h *AuthHandler) Register(ctx *gin.Context) {
+	//TODO
+	ctx.JSON(http.StatusOK, "pong")
 }
 
-func HandleAuthLogout(ctx *gin.Context) {
-	return
-}
-
-func HandleGetProducts(ctx *gin.Context) {
-	return
-}
-
-func HandleGetProductById(ctx *gin.Context) {
-	return
-}
-
-func HandleCartAdd(ctx *gin.Context) {
-	return
-}
-
-func HandleGetOrders(ctx *gin.Context) {
-	return
-}
-
-func HandleOrdersCreate(ctx *gin.Context) {
-	return
-}
-
-func HandlePaymentCheckout(ctx *gin.Context) {
-	return
+func (h *AuthHandler) Login(ctx *gin.Context) {
+	//TODO
+	ctx.JSON(http.StatusOK, "pong")
 }
