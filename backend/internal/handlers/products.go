@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/bigelle/online-shop/backend/internal/models"
+	"github.com/bigelle/online-shop/backend/internal/schemas"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -19,22 +20,68 @@ func NewProductHandler(db *gorm.DB) *ProductHandler {
 func (p *ProductHandler) GetAll(ctx *gin.Context) {
 	var products []models.Product
 	if err := p.DB.Find(&products).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		if err == gorm.ErrRecordNotFound {
+			ctx.JSON(
+				http.StatusNotFound,
+				schemas.Response{
+					Ok:          false,
+					Code:        http.StatusNotFound,
+					Description: http.StatusText(http.StatusNotFound),
+				},
+			)
+			return
+		}
+		ctx.JSON(
+			http.StatusInternalServerError,
+			schemas.Response{
+				Ok:          false,
+				Code:        http.StatusInternalServerError,
+				Description: http.StatusText(http.StatusInternalServerError),
+			},
+		)
 		return
 	}
-	ctx.JSON(http.StatusOK, products)
+	ctx.JSON(
+		http.StatusOK,
+		schemas.Response{
+			Ok:     true,
+			Code:   http.StatusOK,
+			Result: products,
+		},
+	)
 }
 
 func (p *ProductHandler) GetById(ctx *gin.Context) {
 	id := ctx.GetInt("id")
 	var product models.Product
 	if err := p.DB.First(&product, id).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		if err == gorm.ErrRecordNotFound {
+			ctx.JSON(
+				http.StatusNotFound,
+				schemas.Response{
+					Ok:          false,
+					Code:        http.StatusNotFound,
+					Description: http.StatusText(http.StatusNotFound),
+				},
+			)
+			return
+		}
+		ctx.JSON(
+			http.StatusInternalServerError,
+			schemas.Response{
+				Ok:          false,
+				Code:        http.StatusInternalServerError,
+				Description: http.StatusText(http.StatusInternalServerError),
+			},
+		)
 		return
 	}
-	ctx.JSON(http.StatusOK, product)
+	ctx.JSON(
+		http.StatusOK,
+		schemas.Response{
+			Ok:     true,
+			Code:   http.StatusOK,
+			Result: product,
+		},
+	)
 }

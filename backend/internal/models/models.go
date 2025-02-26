@@ -9,3 +9,12 @@ type Product struct {
 	Description string
 	Tags        []string `gorm:"type:text"`
 }
+
+type User struct {
+	gorm.Model
+	Username       string
+	Email          string
+	HashedPassword string
+	CsrfToken      string
+	SessionToken   string
+}
