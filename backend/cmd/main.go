@@ -3,27 +3,35 @@ package main
 import (
 	"log"
 
-	"github.com/bigelle/online-shop/internal/handlers"
+	"github.com/bigelle/online-shop/backend/config"
+	"github.com/bigelle/online-shop/backend/internal/database"
+	"github.com/bigelle/online-shop/backend/internal/server"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
 
 func main() {
-	err := godotenv.Load("../.env")
-	if err != nil {
+	if err := godotenv.Load("../.env"); err != nil {
 		log.Fatalf("can't load .env file: %s", err.Error())
 	}
 
-	r := gin.Default()
-	r.POST("/api/auth/register", handlers.HandleAuthRegister)
-	r.POST("/api/auth/login", handlers.HandleAuthLogin)
-	r.POST("/api/auth/logout", handlers.HandleAuthLogout)
-	r.GET("/api/products", handlers.HandleGetProducts)
-	r.GET("/api/products/:id", handlers.HandleGetProductById)
-	r.POST("/api/cart/add", handlers.HandleCartAdd)
-	r.GET("/api/orders", handlers.HandleGetOrders)
-	r.POST("/api/orders/create", handlers.HandleOrdersCreate)
-	r.POST("/api/payment/checkout", handlers.HandlePaymentCheckout)
+	conf := config.New()
 
-	r.Run()
+	db, err := database.Connect(conf.DatabaseDSN)
+	if err != nil {
+		log.Fatalf("error connecting to database: %s", err.Error())
+	}
+	defer database.Close(db)
+	if err := database.Migrate(db); err != nil {
+		log.Fatalf("can't automigrate: %s", err.Error())
+	}
+
+	r := gin.Default()
+
+	//middleware? idk
+
+	server.SetupRoutes(r, db)
+
+	//FIXME
+	r.Run(":8080")
 }
