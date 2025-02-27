@@ -16,3 +16,8 @@ type Login struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
+
+type CartItem struct {
+	ProductId uint `json:"product_id"`
+	Quantity  int  `json:"quantity"`
+}

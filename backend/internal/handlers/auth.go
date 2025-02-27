@@ -3,7 +3,6 @@ package handlers
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -13,20 +12,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
-
-func authorize(r *http.Request, usr models.User) error {
-	st, err := r.Cookie("session_token")
-	if err != nil || st.Value == "" || st.Value != usr.SessionToken {
-		return fmt.Errorf("unauthorized")
-	}
-
-	csrf := r.Header.Get("X-CSRF-TOKEN")
-	if csrf == "" || csrf != usr.CsrfToken {
-		return fmt.Errorf("unauthorized")
-	}
-
-	return nil
-}
 
 type AuthHandler struct {
 	DB *gorm.DB
@@ -160,56 +145,20 @@ func (h *AuthHandler) Login(ctx *gin.Context) {
 }
 
 func (h *AuthHandler) Logout(ctx *gin.Context) {
-	var l schemas.Login
-	if err := ctx.Bind(&l); err != nil {
+	usr, exists := ctx.Get("user")
+	if !exists {
 		ctx.JSON(
-			http.StatusBadRequest,
+			http.StatusUnauthorized,
 			schemas.Response{
 				Ok:          false,
-				Code:        http.StatusBadRequest,
-				Description: http.StatusText(http.StatusBadRequest),
+				Code:        http.StatusUnauthorized,
+				Description: "unauthorized",
 			},
 		)
-		return
 	}
+	u := usr.(models.User)
 
-	usr, err := h.findUser(l.Email)
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			ctx.JSON(
-				http.StatusNotFound,
-				schemas.Response{
-					Ok:          false,
-					Code:        http.StatusNotFound,
-					Description: "user with this email not found",
-				},
-			)
-			return
-		}
-		ctx.JSON(
-			http.StatusInternalServerError,
-			schemas.Response{
-				Ok:          false,
-				Code:        http.StatusInternalServerError,
-				Description: http.StatusText(http.StatusInternalServerError),
-			},
-		)
-		return
-	}
-
-	if err := authorize(ctx.Request, *usr); err != nil {
-		ctx.JSON(
-			http.StatusBadRequest,
-			schemas.Response{
-				Ok:          false,
-				Code:        http.StatusBadRequest,
-				Description: "wrong password",
-			},
-		)
-		return
-	}
-
-	h.expireAuthCookies(ctx, *usr)
+	h.expireAuthCookies(ctx, u)
 
 	ctx.JSON(
 		http.StatusAccepted,

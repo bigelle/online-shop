@@ -7,7 +7,7 @@ type Product struct {
 	Name        string
 	Price       int
 	Description string
-	Tags        []string `gorm:"type:text"`
+	Tags        []string `gorm:"serializer:json"`
 }
 
 type User struct {
@@ -17,4 +17,13 @@ type User struct {
 	HashedPassword string
 	CsrfToken      string
 	SessionToken   string
+	CartItems      []CartItem `gorm:"foreignKey:UserID"`
+}
+
+type CartItem struct {
+	gorm.Model
+	UserID    uint
+	ProductID uint
+	Product   Product `gorm:"foreignKey:ProductID"`
+	Quantity  int
 }
