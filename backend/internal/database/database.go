@@ -2,6 +2,7 @@ package database
 
 import (
 	"errors"
+	"log"
 
 	"github.com/bigelle/online-shop/backend/internal/models"
 	"github.com/bigelle/online-shop/backend/internal/schemas"
@@ -30,7 +31,19 @@ func Migrate(db *gorm.DB) error {
 }
 
 func Close(db *gorm.DB) {
-	//TODO
+	if db == nil {
+		log.Println("Warning: trying to close a nil database connection")
+		return
+	}
+	sqlDB, err := db.DB()
+	if err != nil {
+		log.Printf("Error getting SQL DB from GORM: %s", err)
+		return
+	}
+	if err := sqlDB.Close(); err != nil {
+		log.Printf("Error closing database connection: %s", err)
+	}
+
 }
 
 func FindUser(db *gorm.DB, email string) (*models.User, error) {

@@ -86,7 +86,7 @@ func (h *AuthHandler) Register(ctx *gin.Context) {
 
 func (h *AuthHandler) Login(ctx *gin.Context) {
 	var l schemas.Login
-	if err := ctx.Bind(&l); err != nil {
+	if err := ctx.BindJSON(&l); err != nil {
 		ctx.JSON(
 			http.StatusBadRequest,
 			schemas.Response{
@@ -99,7 +99,7 @@ func (h *AuthHandler) Login(ctx *gin.Context) {
 	}
 
 	usr, err := database.FindUser(h.DB, l.Email)
-	if err != nil {
+	if err != nil || !checkPassword(l.Password, usr.HashedPassword) {
 		if err == gorm.ErrRecordNotFound {
 			ctx.JSON(
 				http.StatusNotFound,
@@ -112,23 +112,11 @@ func (h *AuthHandler) Login(ctx *gin.Context) {
 			return
 		}
 		ctx.JSON(
-			http.StatusInternalServerError,
+			http.StatusUnauthorized,
 			schemas.Response{
 				Ok:          false,
-				Code:        http.StatusInternalServerError,
-				Description: http.StatusText(http.StatusInternalServerError),
-			},
-		)
-		return
-	}
-
-	if !checkPassword(l.Password, usr.HashedPassword) {
-		ctx.JSON(
-			http.StatusBadRequest,
-			schemas.Response{
-				Ok:          false,
-				Code:        http.StatusBadRequest,
-				Description: "wrong password", // FIXME change the logic the way that you can't tell if its a non-existing username or wrong password
+				Code:        http.StatusUnauthorized,
+				Description: "wrong email or password",
 			},
 		)
 		return
