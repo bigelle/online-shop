@@ -23,15 +23,12 @@ func main() {
 	}
 	defer database.Close(db)
 	if err := database.Migrate(db); err != nil {
-		log.Fatalf("can't automigrate: %s", err.Error())
+		log.Fatalf("can't migrate: %s", err.Error())
 	}
 
 	r := gin.Default()
 
-	//middleware? idk
-
 	server.SetupRoutes(r, db)
 
-	//FIXME
 	r.Run(":8080")
 }

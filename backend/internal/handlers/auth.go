@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/bigelle/online-shop/backend/internal/database"
 	"github.com/bigelle/online-shop/backend/internal/models"
 	"github.com/bigelle/online-shop/backend/internal/schemas"
 	"github.com/gin-gonic/gin"
@@ -35,7 +36,7 @@ func (h *AuthHandler) Register(ctx *gin.Context) {
 		return
 	}
 
-	_, err := h.findUser(l.Email)
+	_, err := database.FindUser(h.DB, l.Email)
 	if err != gorm.ErrRecordNotFound {
 		ctx.JSON(
 			http.StatusBadRequest,
@@ -62,7 +63,7 @@ func (h *AuthHandler) Register(ctx *gin.Context) {
 	}
 	l.Password = hashed
 
-	if err := h.addUser(l); err != nil {
+	if err := database.AddUser(h.DB, l); err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
 			schemas.Response{
@@ -85,7 +86,7 @@ func (h *AuthHandler) Register(ctx *gin.Context) {
 
 func (h *AuthHandler) Login(ctx *gin.Context) {
 	var l schemas.Login
-	if err := ctx.Bind(&l); err != nil {
+	if err := ctx.BindJSON(&l); err != nil {
 		ctx.JSON(
 			http.StatusBadRequest,
 			schemas.Response{
@@ -97,8 +98,8 @@ func (h *AuthHandler) Login(ctx *gin.Context) {
 		return
 	}
 
-	usr, err := h.findUser(l.Email)
-	if err != nil {
+	usr, err := database.FindUser(h.DB, l.Email)
+	if err != nil || !checkPassword(l.Password, usr.HashedPassword) {
 		if err == gorm.ErrRecordNotFound {
 			ctx.JSON(
 				http.StatusNotFound,
@@ -111,23 +112,11 @@ func (h *AuthHandler) Login(ctx *gin.Context) {
 			return
 		}
 		ctx.JSON(
-			http.StatusInternalServerError,
+			http.StatusUnauthorized,
 			schemas.Response{
 				Ok:          false,
-				Code:        http.StatusInternalServerError,
-				Description: http.StatusText(http.StatusInternalServerError),
-			},
-		)
-		return
-	}
-
-	if !checkPassword(l.Password, usr.HashedPassword) {
-		ctx.JSON(
-			http.StatusBadRequest,
-			schemas.Response{
-				Ok:          false,
-				Code:        http.StatusBadRequest,
-				Description: "wrong password", // FIXME change the logic the way that you can't tell if its a non-existing username or wrong password
+				Code:        http.StatusUnauthorized,
+				Description: "wrong email or password",
 			},
 		)
 		return
@@ -167,20 +156,6 @@ func (h *AuthHandler) Logout(ctx *gin.Context) {
 			Code: http.StatusAccepted,
 		},
 	)
-}
-
-func (h *AuthHandler) findUser(email string) (*models.User, error) {
-	var usr models.User
-	err := h.DB.Model(&models.User{}).Where("email = ?", email).Select("*").First(&usr).Error
-	return &usr, err
-}
-
-func (h *AuthHandler) addUser(l schemas.Login) error {
-	return h.DB.Create(&models.User{
-		Username:       l.Username,
-		Email:          l.Email,
-		HashedPassword: l.Password,
-	}).Error
 }
 
 func (h *AuthHandler) updateUser(usr models.User) error {

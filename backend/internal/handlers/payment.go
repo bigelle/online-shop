@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/bigelle/online-shop/backend/internal/schemas"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -16,6 +17,32 @@ func NewPaymentHandler(db *gorm.DB) *PaymentHandler {
 }
 
 func (h *PaymentHandler) Checkout(ctx *gin.Context) {
-	//TODO
-	ctx.JSON(http.StatusOK, "pong")
+	var payment schemas.PaymentRequest
+	if err := ctx.BindJSON(&payment); err != nil {
+		ctx.JSON(
+			http.StatusBadRequest,
+			schemas.Response{
+				Ok:          false,
+				Code:        http.StatusBadRequest,
+				Description: "bad request",
+			},
+		)
+		return
+	}
+
+	//making some stuff with this payment
+	//imagine we redirecting it to some payment service and waiting for result
+	//on success:
+	ctx.JSON(
+		http.StatusAccepted,
+		schemas.Response{
+			Ok:   true,
+			Code: http.StatusAccepted,
+			Result: schemas.PaymentResponse{
+				OrderID:   payment.OrderID,
+				PaymentID: "tx_42", // from third-party payment service
+				Status:    "success",
+			},
+		},
+	)
 }

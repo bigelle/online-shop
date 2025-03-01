@@ -33,7 +33,7 @@ func (h *CartHandler) Update(ctx *gin.Context) {
 	}
 	u := user.(models.User)
 
-	var items []schemas.CartItem
+	var items []schemas.CartItemRequest
 	if err := ctx.BindJSON(&items); err != nil {
 		ctx.JSON(
 			http.StatusBadRequest,
@@ -48,10 +48,10 @@ func (h *CartHandler) Update(ctx *gin.Context) {
 
 	updates := make(map[uint]int, len(items))
 	for _, item := range items {
-		updates[item.ProductId] = item.Quantity
+		updates[item.ProductID] = item.Quantity
 	}
 
-	updated, err := database.UpdateCart(h.DB, u.ID, updates)
+	cart, err := database.UpdateCart(h.DB, u.ID, updates)
 	if err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
@@ -69,7 +69,7 @@ func (h *CartHandler) Update(ctx *gin.Context) {
 		schemas.Response{
 			Ok:     true,
 			Code:   http.StatusAccepted,
-			Result: updated.CartItems,
+			Result: wrapCart(cart),
 		},
 	)
 }
@@ -89,9 +89,9 @@ func (h *CartHandler) Remove(ctx *gin.Context) {
 	}
 	u := user.(models.User)
 
-	var items []schemas.CartItem
+	var items []schemas.CartItemRequest
 	if err := ctx.BindJSON(&items); err != nil {
-		var singleItem schemas.CartItem
+		var singleItem schemas.CartItemRequest
 		if err := ctx.BindJSON(&singleItem); err != nil {
 			ctx.JSON(http.StatusBadRequest, schemas.Response{
 				Ok:          false,
@@ -100,15 +100,15 @@ func (h *CartHandler) Remove(ctx *gin.Context) {
 			})
 			return
 		}
-		items = []schemas.CartItem{singleItem}
+		items = []schemas.CartItemRequest{singleItem}
 	}
 
 	updates := make([]uint, len(items))
 	for _, item := range items {
-		updates = append(updates, item.ProductId)
+		updates = append(updates, item.ProductID)
 	}
 
-	updated, err := database.RemoveFromCart(h.DB, u.ID, updates)
+	cart, err := database.RemoveFromCart(h.DB, u.ID, updates)
 	if err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
@@ -126,7 +126,7 @@ func (h *CartHandler) Remove(ctx *gin.Context) {
 		schemas.Response{
 			Ok:     true,
 			Code:   http.StatusAccepted,
-			Result: updated.CartItems,
+			Result: wrapCart(cart),
 		},
 	)
 }
@@ -146,7 +146,7 @@ func (h *CartHandler) Clear(ctx *gin.Context) {
 	}
 	u := user.(models.User)
 
-	_, err := database.ClearCart(h.DB, u.ID)
+	cart, err := database.ClearCart(h.DB, u.ID)
 	if err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
@@ -162,8 +162,67 @@ func (h *CartHandler) Clear(ctx *gin.Context) {
 	ctx.JSON(
 		http.StatusAccepted,
 		schemas.Response{
-			Ok:   true,
-			Code: http.StatusAccepted,
+			Ok:     true,
+			Code:   http.StatusAccepted,
+			Result: wrapCart(cart),
 		},
 	)
+}
+
+func (h *CartHandler) View(ctx *gin.Context) {
+	user, exists := ctx.Get("user")
+	if !exists {
+		ctx.JSON(
+			http.StatusUnauthorized,
+			schemas.Response{
+				Ok:          false,
+				Code:        http.StatusUnauthorized,
+				Description: "unauthorized",
+			},
+		)
+		return
+	}
+	u := user.(models.User)
+
+	cart, err := database.ViewCart(h.DB, u.ID)
+	if err != nil {
+		ctx.JSON(
+			http.StatusInternalServerError,
+			schemas.Response{
+				Ok:          false,
+				Code:        http.StatusInternalServerError,
+				Description: "internal server error",
+			},
+		)
+		return
+	}
+
+	ctx.JSON(
+		http.StatusAccepted,
+		schemas.Response{
+			Ok:     true,
+			Code:   http.StatusAccepted,
+			Result: wrapCart(cart),
+		},
+	)
+}
+
+func wrapCart(cartItems []models.CartItem) schemas.CartResponse {
+	items := make([]schemas.CartItemResponse, len(cartItems))
+	totalPrice := 0
+
+	for i, item := range cartItems {
+		items[i] = schemas.CartItemResponse{
+			ProductID:   item.ProductID,
+			ProductName: item.Product.Name,
+			Quantity:    item.Quantity,
+			Price:       item.Product.Price,
+		}
+		totalPrice += item.Quantity * item.Product.Price
+	}
+
+	return schemas.CartResponse{
+		Items:      items,
+		TotalPrice: totalPrice,
+	}
 }
