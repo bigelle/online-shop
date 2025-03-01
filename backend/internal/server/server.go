@@ -32,6 +32,7 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB) {
 	cartGroup.POST("/add", cartHandler.Update)
 	cartGroup.POST("/remove", cartHandler.Remove)
 	cartGroup.POST("/clear", cartHandler.Clear)
+	cartGroup.GET("/", cartHandler.View)
 
 	// //orders
 	ordersHandler := handlers.NewOrdersHandler(db)
@@ -57,6 +58,7 @@ func authorize(db *gorm.DB) gin.HandlerFunc {
 					Description: "login is required for this path",
 				},
 			)
+			return
 		}
 
 		var usr models.User
@@ -70,6 +72,19 @@ func authorize(db *gorm.DB) gin.HandlerFunc {
 					Description: "invalid session",
 				},
 			)
+			return
+		}
+		csrf := ctx.GetHeader("X-CSRF-Token")
+		if csrf == "" || csrf != usr.CsrfToken {
+			ctx.AbortWithStatusJSON(
+				http.StatusUnauthorized,
+				schemas.Response{
+					Ok:          false,
+					Code:        http.StatusUnauthorized,
+					Description: "invalid session",
+				},
+			)
+			return
 		}
 
 		ctx.Set("user", usr)

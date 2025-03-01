@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/bigelle/online-shop/backend/internal/database"
 	"github.com/bigelle/online-shop/backend/internal/models"
 	"github.com/bigelle/online-shop/backend/internal/schemas"
 	"github.com/gin-gonic/gin"
@@ -35,7 +36,7 @@ func (h *AuthHandler) Register(ctx *gin.Context) {
 		return
 	}
 
-	_, err := h.findUser(l.Email)
+	_, err := database.FindUser(h.DB, l.Email)
 	if err != gorm.ErrRecordNotFound {
 		ctx.JSON(
 			http.StatusBadRequest,
@@ -62,7 +63,7 @@ func (h *AuthHandler) Register(ctx *gin.Context) {
 	}
 	l.Password = hashed
 
-	if err := h.addUser(l); err != nil {
+	if err := database.AddUser(h.DB, l); err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
 			schemas.Response{
@@ -97,7 +98,7 @@ func (h *AuthHandler) Login(ctx *gin.Context) {
 		return
 	}
 
-	usr, err := h.findUser(l.Email)
+	usr, err := database.FindUser(h.DB, l.Email)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			ctx.JSON(
@@ -167,20 +168,6 @@ func (h *AuthHandler) Logout(ctx *gin.Context) {
 			Code: http.StatusAccepted,
 		},
 	)
-}
-
-func (h *AuthHandler) findUser(email string) (*models.User, error) {
-	var usr models.User
-	err := h.DB.Model(&models.User{}).Where("email = ?", email).Select("*").First(&usr).Error
-	return &usr, err
-}
-
-func (h *AuthHandler) addUser(l schemas.Login) error {
-	return h.DB.Create(&models.User{
-		Username:       l.Username,
-		Email:          l.Email,
-		HashedPassword: l.Password,
-	}).Error
 }
 
 func (h *AuthHandler) updateUser(usr models.User) error {
